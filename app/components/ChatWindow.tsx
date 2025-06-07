@@ -34,7 +34,16 @@ export function ChatWindow() {
     setError(null); // Clear previous errors
 
     try {
-      // Call our local API endpoint instead of the backend directly
+      // Create a placeholder message for the AI's response
+      const aiMessageId = uuidv4();
+      const aiMessage: Message = {
+        id: aiMessageId,
+        role: 'assistant',
+        content: '', // Start with empty content that will be filled as the stream comes in
+      };
+      addMessage(aiMessage);
+
+      // Call our local API endpoint with streaming
       console.log("Sending message to local API:", content);
       
       const response = await fetch('/api/chat', {
@@ -54,15 +63,44 @@ export function ChatWindow() {
         throw new Error(errorData.message);
       }
 
-      const data = await response.json();
+      // Set up streaming response handling
+      const reader = response.body?.getReader();
+      const decoder = new TextDecoder();
       
-      // Use the 'reply' field from our proxy response
-      const aiMessage: Message = {
-        id: uuidv4(),
-        role: 'assistant',
-        content: data.reply || "Xin lỗi, tôi không thể xử lý yêu cầu này.", // Fallback content
-      };
-      addMessage(aiMessage);
+      if (!reader) {
+        throw new Error('Response body is not readable');
+      }
+
+      let accumulatedContent = '';
+      console.log("Starting to process stream from server...");
+      let chunkCount = 0;
+      
+      // Read the stream
+      while (true) {
+        const { done, value } = await reader.read();
+        
+        if (done) {
+          console.log(`Stream complete. Processed ${chunkCount} chunks.`);
+          break;
+        }
+        
+        // Decode the chunk - từng phần nhỏ từ server
+        const chunk = decoder.decode(value, { stream: true });
+        chunkCount++;
+        console.log(`Received chunk #${chunkCount} (${chunk.length} chars)`);
+        
+        // Server đã xử lý chunk, chỉ cần thêm vào nội dung hiện có
+        accumulatedContent += chunk;
+        
+        // Cập nhật tin nhắn với nội dung mới
+        useChatStore.setState((state) => ({
+          messages: state.messages.map((msg) => 
+            msg.id === aiMessageId 
+              ? { ...msg, content: accumulatedContent } 
+              : msg
+          ),
+        }));
+      }
       
     } catch (err) {
       console.error('Error sending message:', err);
