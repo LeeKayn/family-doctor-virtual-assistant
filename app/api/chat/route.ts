@@ -84,7 +84,7 @@ export async function POST(request: Request) {
       const formattedQuestion = message;
       
       console.log("Establishing connection to Gradio endpoint...");
-      const client = await Client.connect("https://ee6d5f888b889f96e5.gradio.live/");
+      const client = await Client.connect("https://df5bc51c9db30b9ba8.gradio.live");
       
       console.log("Sending prediction request with message:", formattedQuestion);
       const result = await client.predict("/predict", { 		
