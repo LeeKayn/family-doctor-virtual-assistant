@@ -1,0 +1,42 @@
+/* Hide Next.js dev indicators and tools */
+[data-nextjs-dialog-overlay],
+[data-nextjs-dialog],
+[data-nextjs-toast],
+[data-nextjs-build-indicator] {
+  display: none !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+}
+
+/* Hide specific N marker based on its common styling */
+body > div:has(> span:only-child[style*="color:white"]:only-child) {
+  display: none !important;
+}
+
+/* Hide elements that might contain the letter N and have dark backgrounds */
+div:has(> span:only-child:not([class]):not([id])) {
+  display: none !important;
+}
+
+/* Specifically target the common Next.js dev indicator */
+body > div[style*="position:fixed"][style*="bottom:10px"][style*="right:10px"] {
+  display: none !important;
+}
+
+/* Catch-all for elements with just the letter 'N' in them and dark backgrounds */
+*:not(input):not(textarea) {
+  content: attr(class);
+}
+
+*:not(input):not(textarea):only-child:empty + *:only-child:after {
+  content: attr(textContent);
+}
+
+/* Target elements with dark backgrounds and white text */
+div[style*="background-color:rgb(0, 0, 0)"],
+div[style*="background-color:rgb(51, 51, 51)"],
+div[style*="background-color:#000"],
+div[style*="background-color:#333"] {
+  display: none !important;
+} 
