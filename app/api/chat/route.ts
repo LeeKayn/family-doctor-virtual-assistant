@@ -74,15 +74,222 @@ export async function POST(request: Request) {
     const body = await request.json();
     const { message } = body;
 
+    // Thử kết nối với local server trước
+    try {
+      console.log("Attempting to connect to local server at http://localhost:8000...");
+      
+      const localResponse = await fetch('http://localhost:8000/api/chat', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ question: message }),
+        signal: AbortSignal.timeout(10000), // 10 second timeout
+      });
+
+      if (localResponse.ok) {
+        const data = await localResponse.json();
+        console.log("Local server response received successfully");
+        
+        // Return as streaming response
+        const encoder = new TextEncoder();
+        const stream = new ReadableStream({
+          async start(controller) {
+            try {
+              // Simulate typing effect for local response
+              const responseText = data.response || "Không thể nhận phản hồi từ server.";
+              for (let i = 0; i < responseText.length; i++) {
+                const chunk = responseText.slice(i, i + 1);
+                controller.enqueue(encoder.encode(chunk));
+                await new Promise(resolve => setTimeout(resolve, 15));
+              }
+              controller.close();
+            } catch (error) {
+              console.error("Error in local response streaming:", error);
+              controller.close();
+            }
+          }
+        });
+        
+        return new Response(stream, {
+          headers: {
+            'Content-Type': 'text/plain; charset=utf-8',
+            'Cache-Control': 'no-cache',
+            'Connection': 'keep-alive',
+          },
+        });
+      }
+    } catch (localError) {
+      console.log("Local server not available:", localError instanceof Error ? localError.message : String(localError));
+    }
+
+    // Thử kết nối với ngrok endpoint với streaming
+    try {
+      console.log("Attempting to connect to ngrok streaming endpoint...");
+      
+      const ngrokResponse = await fetch('https://weasel-ideal-mammoth.ngrok-free.app/api/chat/stream', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'ngrok-skip-browser-warning': 'true',
+          'User-Agent': 'Next.js-Health-Chatbot/1.0',
+          'Accept': 'text/plain',
+        },
+        body: JSON.stringify({ question: message }),
+        signal: AbortSignal.timeout(60000), // 60s timeout cho streaming
+      });
+
+      if (ngrokResponse.ok && ngrokResponse.body) {
+        console.log("Ngrok streaming response received, setting up stream...");
+        
+        // Return the actual stream from Python API
+        const encoder = new TextEncoder();
+        const decoder = new TextDecoder();
+        
+        const stream = new ReadableStream({
+          async start(controller) {
+            try {
+              const reader = ngrokResponse.body!.getReader();
+              let accumulatedText = "";
+              
+              while (true) {
+                const { done, value } = await reader.read();
+                
+                if (done) {
+                  console.log("Stream completed from Python API");
+                  break;
+                }
+                
+                // Decode the chunk from Python API
+                const chunk = decoder.decode(value, { stream: true });
+                console.log("Raw chunk received:", chunk.length, "bytes");
+                console.log("Chunk preview:", chunk.substring(0, 200));
+                
+                // Parse Server-Sent Events format if needed
+                if (chunk.startsWith('data: ')) {
+                  try {
+                    const jsonStr = chunk.replace('data: ', '').trim();
+                    if (jsonStr === '[DONE]') {
+                      break;
+                    }
+                    
+                    const parsed = JSON.parse(jsonStr);
+                    if (parsed.text) {
+                      // Decode Unicode escape sequences properly
+                      let decodedText = parsed.text;
+                      try {
+                        // Handle Unicode escape sequences like \u0110
+                        decodedText = JSON.parse('"' + parsed.text + '"');
+                      } catch {
+                        // If JSON parsing fails, use original text
+                        decodedText = parsed.text;
+                      }
+                      
+                      // Send only the new part of the text (incremental)
+                      if (decodedText.length > accumulatedText.length) {
+                        const newText = decodedText.slice(accumulatedText.length);
+                        if (newText.trim()) {
+                          console.log("Sending incremental text:", newText.substring(0, 50) + "...");
+                          controller.enqueue(encoder.encode(newText));
+                          accumulatedText = decodedText;
+                        }
+                      }
+                    }
+                  } catch (parseError) {
+                    console.log("Failed to parse SSE JSON:", parseError);
+                    // If not JSON, treat as plain text but avoid duplicates
+                    const cleanChunk = chunk.replace('data: ', '');
+                    if (cleanChunk.trim() && !accumulatedText.includes(cleanChunk)) {
+                      controller.enqueue(encoder.encode(cleanChunk));
+                    }
+                  }
+                } else {
+                  // Direct text chunk - avoid duplicates
+                  if (chunk.trim() && !accumulatedText.includes(chunk)) {
+                    controller.enqueue(encoder.encode(chunk));
+                  }
+                }
+              }
+              
+              controller.close();
+            } catch (error) {
+              console.error("Error in ngrok streaming:", error);
+              controller.enqueue(encoder.encode("\n\nLỗi trong quá trình streaming từ AI server."));
+              controller.close();
+            }
+          }
+        });
+        
+        return new Response(stream, {
+          headers: {
+            'Content-Type': 'text/plain; charset=utf-8',
+            'Cache-Control': 'no-cache',
+            'Connection': 'keep-alive',
+          },
+        });
+      } else {
+        console.log("Ngrok streaming response not OK:", ngrokResponse.status, ngrokResponse.statusText);
+        
+        // Fallback to non-streaming endpoint
+        console.log("Falling back to non-streaming endpoint...");
+        const fallbackResponse = await fetch('https://weasel-ideal-mammoth.ngrok-free.app/api/chat', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'ngrok-skip-browser-warning': 'true',
+            'User-Agent': 'Next.js-Health-Chatbot/1.0',
+          },
+          body: JSON.stringify({ question: message }),
+          signal: AbortSignal.timeout(30000),
+        });
+
+        if (fallbackResponse.ok) {
+          const data = await fallbackResponse.json();
+          console.log("Fallback response received successfully");
+          
+          // Create fake streaming from complete response
+          const encoder = new TextEncoder();
+          const stream = new ReadableStream({
+            async start(controller) {
+              try {
+                const responseText = data.response || data.text || "Không thể nhận phản hồi từ server.";
+                console.log("Creating fake stream for text length:", responseText.length);
+                
+                // Faster fake streaming since we already waited
+                for (let i = 0; i < responseText.length; i++) {
+                  const chunk = responseText.slice(i, i + 1);
+                  controller.enqueue(encoder.encode(chunk));
+                  await new Promise(resolve => setTimeout(resolve, 10)); // Faster typing
+                }
+                controller.close();
+              } catch (error) {
+                console.error("Error in fallback streaming:", error);
+                controller.close();
+              }
+            }
+          });
+          
+          return new Response(stream, {
+            headers: {
+              'Content-Type': 'text/plain; charset=utf-8',
+              'Cache-Control': 'no-cache',
+              'Connection': 'keep-alive',
+            },
+          });
+        }
+      }
+    } catch (ngrokError) {
+      console.log("Ngrok server not available:", ngrokError instanceof Error ? ngrokError.message : String(ngrokError));
+    }
+
+    // Fallback to Gradio and then to built-in responses
     try {
       console.log("Connecting to Gradio API for streaming response...");
       
       // Import the Gradio client
       try {
-        // Sử dụng dynamic import để tránh lỗi và có thể thử cách khác nếu cần
         const { Client } = await import('@gradio/client');
         
-        // Connect to the Gradio API (sử dụng endpoint đã cập nhật)
         console.log("Establishing connection to Gradio endpoint...");
         const client = await Client.connect("https://6f0c9d3bc7203e8e99.gradio.live");
         
@@ -91,31 +298,10 @@ export async function POST(request: Request) {
         const stream = new ReadableStream({
           async start(controller) {
             try {
-              // Print API structure for debugging
-              let apiDetails = null;
-              try {
-                console.log("Fetching API details...");
-                apiDetails = await client.view_api();
-                console.log("API structure:", JSON.stringify(apiDetails, null, 2));
-                
-                // Print API endpoints available
-                console.log("API endpoints available:");
-                if (apiDetails && apiDetails.named_endpoints) {
-                  Object.keys(apiDetails.named_endpoints).forEach(endpoint => {
-                    console.log(`- ${endpoint}`);
-                  });
-                }
-              } catch (apiError) {
-                console.log("Could not fetch API details:", apiError);
-              }
-              
               console.log("Setting up Gradio streaming...");
               
-              // === ATTEMPT 1: Use streaming with submit ===
               try {
                 console.log("Attempting to call streaming endpoint...");
-                console.log("Submitting request to named endpoint: /generate_streaming_response");
-                
                 const job = await client.submit("/generate_streaming_response", { 
                   question: message 
                 }, {
@@ -124,18 +310,14 @@ export async function POST(request: Request) {
                 
                 console.log("Request submitted successfully, waiting for streaming responses...");
                 
-                // Process job updates with the iterator
                 let accumulatedText = "";
                 let chunkCount = 0;
                 
                 for await (const update of job) {
-                  // Type check if this is a data event with content
                   if ('data' in update && update.data !== undefined) {
-                    // Cast to appropriate type
                     const dataEvent = update as { data: any };
                     let newText = "";
                     
-                    // Xử lý các định dạng khác nhau của data
                     if (Array.isArray(dataEvent.data) && dataEvent.data.length > 0) {
                       newText = String(dataEvent.data[0]);
                     } else {
@@ -143,7 +325,6 @@ export async function POST(request: Request) {
                     }
                     
                     if (newText.length > accumulatedText.length) {
-                      // Chỉ gửi phần text mới thêm vào, không gửi toàn bộ văn bản đã tích lũy
                       const textDiff = newText.slice(accumulatedText.length);
                       chunkCount++;
                       console.log(`Sending chunk #${chunkCount} (${textDiff.length} chars)`);
@@ -155,89 +336,23 @@ export async function POST(request: Request) {
                 
                 console.log(`Streaming completed. Sent ${chunkCount} chunks with total ${accumulatedText.length} chars.`);
                 controller.close();
-                return; // Kết thúc sớm nếu thành công
+                return;
                 
-              } catch (firstError) {
-                console.log("First streaming endpoint failed:", firstError);
-                
-                // === ATTEMPT 2: Use predict with the same endpoint ===
-                try {
-                  console.log("Attempting second method with predict...");
-                  const response = await client.predict("/generate_streaming_response", { 
-                    question: message 
-                  });
-                  
-                  // Safe type check for response data
-                  if (response && response.data) {
-                    // Kiểm tra nếu data là array
-                    if (Array.isArray(response.data) && response.data.length > 0) {
-                      const responseText = String(response.data[0]);
-                      console.log("Received response from second attempt (array):", responseText);
-                      controller.enqueue(encoder.encode(responseText));
-                      controller.close();
-                      return; // Kết thúc sớm nếu thành công
-                    } 
-                    // Nếu data không phải array mà là string hoặc object
-                    else {
-                      const responseText = String(response.data);
-                      console.log("Received response from second attempt (non-array):", responseText);
-                      controller.enqueue(encoder.encode(responseText));
-                      controller.close();
-                      return; // Kết thúc sớm nếu thành công
-                    }
-                  } else {
-                    throw new Error("Empty response from second attempt");
-                  }
-                } catch (secondError) {
-                  console.log("Second attempt failed:", secondError);
-                  
-                  // === ATTEMPT 3: Try another endpoint ===
-                  try {
-                    console.log("Attempting third method with another endpoint...");
-                    const response = await client.predict("/generate_streaming_response_1", { 
-                      question: message 
-                    });
-                    
-                    // Safe type check for response data
-                    if (response && response.data) {
-                      // Kiểm tra nếu data là array
-                      if (Array.isArray(response.data) && response.data.length > 0) {
-                        const responseText = String(response.data[0]);
-                        console.log("Received response from third attempt (array):", responseText);
-                        controller.enqueue(encoder.encode(responseText));
-                        controller.close();
-                        return; // Kết thúc sớm nếu thành công
-                      } 
-                      // Nếu data không phải array mà là string hoặc object
-                      else {
-                        const responseText = String(response.data);
-                        console.log("Received response from third attempt (non-array):", responseText);
-                        controller.enqueue(encoder.encode(responseText));
-                        controller.close();
-                        return; // Kết thúc sớm nếu thành công
-                      }
-                    } else {
-                      throw new Error("Empty response from third attempt");
-                    }
-                  } catch (thirdError) {
-                    console.log("All API attempts failed, using fallback:", thirdError);
-                  }
-                }
+              } catch (gradioError) {
+                console.log("Gradio API failed, using fallback:", gradioError);
               }
               
-              // Nếu tất cả đều thất bại, sử dụng fallback
-              console.log("Using fallback response after all attempts failed");
-              controller.enqueue(encoder.encode("Không thể kết nối với dịch vụ AI. Đang sử dụng phương thức dự phòng...\n\n"));
+              // Final fallback to built-in responses
+              console.log("Using built-in fallback response");
+              controller.enqueue(encoder.encode("Hiện tại không thể kết nối với AI server. Đang sử dụng phương thức dự phòng...\n\n"));
               const fallbackText = getHealthcareResponse(message);
               controller.enqueue(encoder.encode(fallbackText));
               controller.close();
               
             } catch (error) {
               console.error("Error in streaming:", error);
-              // In case of error, send a message and close the stream
-              controller.enqueue(encoder.encode("\n\nXảy ra lỗi kết nối với hệ thống AI. Đang chuyển sang phương thức dự phòng..."));
+              controller.enqueue(encoder.encode("\n\nXảy ra lỗi kết nối. Đang chuyển sang phương thức dự phòng..."));
               
-              // Use fallback content
               const fallbackText = getHealthcareResponse(message);
               controller.enqueue(encoder.encode(fallbackText));
               
@@ -246,7 +361,6 @@ export async function POST(request: Request) {
           }
         });
         
-        // Return the streaming response
         return new Response(stream, {
           headers: {
             'Content-Type': 'text/plain; charset=utf-8',
@@ -259,10 +373,10 @@ export async function POST(request: Request) {
         throw importError;
       }
     } catch (error) {
-      console.error("API error:", error);
+      console.error("All API attempts failed:", error);
       
-      // Sử dụng fallback nếu có lỗi
-      console.log("Using fallback response stream");
+      // Final fallback to built-in responses
+      console.log("Using final fallback response stream");
       const fallbackStream = createHealthcareResponseStream(message);
       
       return new Response(fallbackStream, {

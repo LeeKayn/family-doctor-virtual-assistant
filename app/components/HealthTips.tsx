@@ -1,87 +1,198 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
-
-const tips = [
-  {
-    icon: "❤️",
-    title: "Huyết áp",
-    description: "Kiểm tra huyết áp định kỳ. Huyết áp lý tưởng là dưới 120/80 mmHg."
-  },
-  {
-    icon: "🥗",
-    title: "Dinh dưỡng",
-    description: "Ăn nhiều rau xanh, trái cây và hạn chế thực phẩm chế biến sẵn."
-  },
-  {
-    icon: "💧",
-    title: "Nước",
-    description: "Uống 1.5-2 lít nước mỗi ngày để duy trì sức khỏe tối ưu."
-  },
-  {
-    icon: "🏃",
-    title: "Vận động",
-    description: "Vận động ít nhất 30 phút mỗi ngày, 5 ngày mỗi tuần."
-  },
-  {
-    icon: "😴",
-    title: "Giấc ngủ",
-    description: "Ngủ 7-8 tiếng mỗi đêm để cơ thể được phục hồi đầy đủ."
-  },
-  {
-    icon: "🧘",
-    title: "Stress",
-    description: "Thực hành thiền, yoga hoặc các hoạt động thư giãn hàng ngày."
-  }
-];
+import { useState } from 'react';
 
 export function HealthTips() {
-  // State to store the currently displayed tips
-  const [selectedTips, setSelectedTips] = useState<typeof tips>([]);
-  
-  // Function to get new random tips
-  const getRandomTips = () => {
-    const shuffled = [...tips].sort(() => 0.5 - Math.random());
-    return shuffled.slice(0, 3);
+  const [activeTab, setActiveTab] = useState('general');
+
+  const healthTips = {
+    general: [
+      {
+        icon: "💧",
+        title: "Uống đủ nước",
+        content: "Uống ít nhất 8 ly nước mỗi ngày để duy trì sức khỏe tối ưu",
+        tags: ["Dinh dưỡng", "Hàng ngày"]
+      },
+      {
+        icon: "🏃‍♂️",
+        title: "Tập thể dục đều đặn",
+        content: "Ít nhất 30 phút hoạt động thể chất mỗi ngày để tăng cường sức khỏe tim mạch",
+        tags: ["Thể dục", "Tim mạch"]
+      },
+      {
+        icon: "😴",
+        title: "Ngủ đủ giấc",
+        content: "7-9 tiếng ngủ mỗi đêm giúp cơ thể phục hồi và tăng cường miễn dịch",
+        tags: ["Giấc ngủ", "Phục hồi"]
+      },
+      {
+        icon: "🥗",
+        title: "Ăn uống cân bằng",
+        content: "Chế độ ăn đa dạng với nhiều rau củ, trái cây và protein nạc",
+        tags: ["Dinh dưỡng", "Cân bằng"]
+      }
+    ],
+    nutrition: [
+      {
+        icon: "🍎",
+        title: "5 phần rau củ mỗi ngày",
+        content: "Đảm bảo có ít nhất 5 phần rau củ quả trong khẩu phần ăn hàng ngày",
+        tags: ["Vitamin", "Chất xơ"]
+      },
+      {
+        icon: "🐟",
+        title: "Omega-3 từ cá",
+        content: "Ăn cá béo như cá hồi, cá thu 2-3 lần/tuần để bổ sung omega-3",
+        tags: ["Omega-3", "Tim mạch"]
+      },
+      {
+        icon: "🥛",
+        title: "Canxi cho xương",
+        content: "Sữa, sản phẩm từ sữa và rau xanh đậm cung cấp canxi cho xương chắc khỏe",
+        tags: ["Canxi", "Xương khớp"]
+      },
+      {
+        icon: "🌾",
+        title: "Ngũ cốc nguyên hạt",
+        content: "Chọn gạo lứt, yến mạch thay vì tinh bột trắng để có nhiều chất xơ hơn",
+        tags: ["Chất xơ", "Tiêu hóa"]
+      }
+    ],
+    exercise: [
+      {
+        icon: "🚶‍♀️",
+        title: "Đi bộ mỗi ngày",
+        content: "10.000 bước mỗi ngày giúp cải thiện sức khỏe tổng thể và giảm cân",
+        tags: ["Cardio", "Giảm cân"]
+      },
+      {
+        icon: "💪",
+        title: "Tập sức mạnh",
+        content: "2-3 buổi tập tạ mỗi tuần để duy trì khối lượng cơ và mật độ xương",
+        tags: ["Sức mạnh", "Cơ bắp"]
+      },
+      {
+        icon: "🧘‍♀️",
+        title: "Yoga và thiền",
+        content: "Giúp giảm stress, tăng tính linh hoạt và cải thiện sức khỏe tinh thần",
+        tags: ["Thư giãn", "Linh hoạt"]
+      },
+      {
+        icon: "🏊‍♂️",
+        title: "Bơi lội",
+        content: "Môn thể thao toàn thân ít tác động, phù hợp với mọi lứa tuổi",
+        tags: ["Toàn thân", "Khớp"]
+      }
+    ],
+    mental: [
+      {
+        icon: "🧠",
+        title: "Quản lý stress",
+        content: "Học các kỹ thuật thở sâu và thư giãn để kiểm soát căng thẳng hàng ngày",
+        tags: ["Stress", "Thư giãn"]
+      },
+      {
+        icon: "👥",
+        title: "Kết nối xã hội",
+        content: "Duy trì mối quan hệ tích cực với gia đình và bạn bè để cải thiện tinh thần",
+        tags: ["Xã hội", "Hạnh phúc"]
+      },
+      {
+        icon: "📚",
+        title: "Học hỏi liên tục",
+        content: "Đọc sách, học kỹ năng mới để giữ cho não bộ hoạt động tích cực",
+        tags: ["Học tập", "Trí não"]
+      },
+      {
+        icon: "🎯",
+        title: "Đặt mục tiêu",
+        content: "Có mục tiêu rõ ràng và kế hoạch thực hiện giúp tăng động lực sống",
+        tags: ["Mục tiêu", "Động lực"]
+      }
+    ]
   };
 
-  // Initialize with random tips and set up interval to rotate tips
-  useEffect(() => {
-    // Initial set of tips
-    setSelectedTips(getRandomTips());
-    
-    // Set up interval to rotate tips every 30 seconds
-    const interval = setInterval(() => {
-      setSelectedTips(getRandomTips());
-    }, 30000); // 30 seconds
-    
-    // Clean up interval on component unmount
-    return () => clearInterval(interval);
-  }, []);
+  const tabs = [
+    { id: 'general', label: 'Tổng quan', icon: '🌟' },
+    { id: 'nutrition', label: 'Dinh dưỡng', icon: '🥗' },
+    { id: 'exercise', label: 'Thể dục', icon: '💪' },
+    { id: 'mental', label: 'Tinh thần', icon: '🧠' }
+  ];
 
   return (
     <div className="health-tips-card">
-      <h3 className="text-lg font-medium text-gray-800 mb-3">Lời khuyên sức khỏe</h3>
-      <div className="grid grid-cols-1 gap-3">
-        {selectedTips.map((tip, index) => (
-          <div key={index} className="health-tip-item">
-            <div className="health-tip-icon">{tip.icon}</div>
-            <div>
-              <h4 className="font-medium text-blue-800">{tip.title}</h4>
-              <p className="text-sm text-gray-700">{tip.description}</p>
+      <div className="mb-6">
+        <h3 className="text-xl font-semibold text-gray-800 mb-2 flex items-center">
+          <span className="mr-2">🏥</span>
+          Mẹo Sức Khỏe Hữu Ích
+        </h3>
+        <p className="text-gray-600 text-sm">
+          Khám phá những lời khuyên chăm sóc sức khỏe được các chuyên gia khuyến nghị
+        </p>
+      </div>
+
+      {/* Tab Navigation */}
+      <div className="flex flex-wrap gap-2 mb-6 border-b border-gray-200 pb-4">
+        {tabs.map((tab) => (
+          <button
+            key={tab.id}
+            onClick={() => setActiveTab(tab.id)}
+            className={`px-4 py-2 rounded-full text-sm font-medium transition-all duration-200 ${
+              activeTab === tab.id
+                ? 'bg-blue-600 text-white shadow-lg transform scale-105'
+                : 'bg-gray-100 text-gray-600 hover:bg-gray-200 hover:text-gray-800'
+            }`}
+          >
+            <span className="mr-1">{tab.icon}</span>
+            {tab.label}
+          </button>
+        ))}
+      </div>
+
+      {/* Tips Content */}
+      <div className="grid grid-cols-1 gap-4">
+        {healthTips[activeTab as keyof typeof healthTips].map((tip, index) => (
+          <div 
+            key={index}
+            className="health-tip-item group"
+            style={{
+              animationDelay: `${index * 100}ms`
+            }}
+          >
+            <div className="health-tip-icon flex-shrink-0 group-hover:animate-pulse">
+              {tip.icon}
+            </div>
+            <div className="flex-1">
+              <h4 className="font-semibold text-gray-800 mb-1 group-hover:text-blue-700 transition-colors">
+                {tip.title}
+              </h4>
+              <p className="text-gray-600 text-sm mb-3 leading-relaxed">
+                {tip.content}
+              </p>
+              <div className="flex flex-wrap gap-1">
+                {tip.tags.map((tag, tagIndex) => (
+                  <span key={tagIndex} className="topic-tag">
+                    {tag}
+                  </span>
+                ))}
+              </div>
             </div>
           </div>
         ))}
       </div>
-      
-      <div className="mt-4 pt-3 border-t border-gray-200">
-        <h4 className="font-medium text-gray-700 mb-2">Bạn có thể hỏi về:</h4>
-        <div className="flex flex-wrap gap-2">
-          {["Đau đầu", "Sốt", "Ho", "Mệt mỏi", "Căng thẳng", "Dinh dưỡng"].map((topic, index) => (
-            <span key={index} className="topic-tag">
-              {topic}
-            </span>
-          ))}
+
+      {/* Call to Action */}
+      <div className="mt-6 p-4 bg-gradient-to-r from-blue-50 to-blue-100 rounded-lg border border-blue-200">
+        <div className="flex items-center justify-between">
+          <div>
+            <h4 className="font-semibold text-blue-800 mb-1">
+              💡 Cần tư vấn cá nhân hóa?
+            </h4>
+            <p className="text-blue-600 text-sm">
+              Hãy mô tả tình trạng sức khỏe của bạn để nhận lời khuyên phù hợp
+            </p>
+          </div>
+          <div className="text-2xl">👨‍⚕️</div>
         </div>
       </div>
     </div>

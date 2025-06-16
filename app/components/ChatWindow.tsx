@@ -57,6 +57,7 @@ export function ChatWindow() {
       id: uuidv4(),
       role: 'user',
       content,
+      timestamp: Date.now(),
     };
     addMessage(userMessage);
     
@@ -71,6 +72,7 @@ export function ChatWindow() {
         id: aiMessageId,
         role: 'assistant',
         content: '', // Start with empty content that will be filled as the stream comes in
+        timestamp: Date.now(),
       };
       addMessage(aiMessage);
 
@@ -142,6 +144,7 @@ export function ChatWindow() {
         id: uuidv4(),
         role: 'assistant',
         content: `Lỗi: ${errorMessage}`,
+        timestamp: Date.now(),
       };
       addMessage(errorBotMessage);
     } finally {
