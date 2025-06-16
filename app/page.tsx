@@ -1,8 +1,32 @@
 "use client";
 
-import { ChatWindow } from './components/ChatWindow';
-import { HealthTips } from './components/HealthTips';
 import { ConnectionStatus } from './components/ConnectionStatus';
+import { HydrationGuard } from './components/HydrationGuard';
+import dynamic from 'next/dynamic';
+import { Suspense } from 'react';
+
+// Import ChatWindow với ssr: false để hoàn toàn tránh hydration
+const ChatWindow = dynamic(() => import('./components/ChatWindowWrapper'), {
+  ssr: false,
+  loading: () => (
+    <div className="h-full w-full flex items-center justify-center bg-gray-50">
+      <div className="text-center">
+        <div className="animate-pulse mb-3">Đang tải giao diện chat...</div>
+        <div className="text-sm text-gray-500">Vui lòng đợi trong giây lát</div>
+      </div>
+    </div>
+  )
+});
+
+// Import HealthTips với ssr: false
+const HealthTips = dynamic(() => import('./components/HealthTipsWrapper'), {
+  ssr: false,
+  loading: () => (
+    <div className="bg-white rounded-lg shadow-md p-4 mt-4 min-h-[300px] flex items-center justify-center">
+      <div className="animate-pulse">Đang tải lời khuyên sức khỏe...</div>
+    </div>
+  )
+});
 
 export default function Home() {
   return (
@@ -10,7 +34,15 @@ export default function Home() {
       <div className="flex flex-col lg:flex-row h-screen">
         {/* Main chat column - now full height and wider */}
         <div className="w-full lg:w-3/4 h-full">
-          <ChatWindow />
+          <Suspense fallback={
+            <div className="h-full w-full flex items-center justify-center bg-gray-50">
+              <div className="text-center">
+                <div className="animate-pulse mb-3">Đang tải...</div>
+              </div>
+            </div>
+          }>
+            <ChatWindow />
+          </Suspense>
         </div>
         
         {/* Sidebar column - now narrower */}
@@ -26,7 +58,13 @@ export default function Home() {
             </p>
           </div>
           
-          <HealthTips />
+          <Suspense fallback={
+            <div className="bg-white rounded-lg shadow-md p-4 mt-4 min-h-[300px] flex items-center justify-center">
+              <div className="animate-pulse">Đang tải...</div>
+            </div>
+          }>
+            <HealthTips />
+          </Suspense>
           
           <footer className="mt-4 text-center text-gray-500 text-sm">
             <div className="mb-2">

@@ -5,7 +5,7 @@ import Image from 'next/image';
 
 export function ChatHeader() {
   return (
-    <div className="bg-gradient-to-r from-blue-600 to-blue-800 text-white p-5">
+    <div className="chat-header">
       <div className="flex items-center justify-between">
         <div className="flex items-center">
           <div className="mr-3 bg-white p-2 rounded-full">

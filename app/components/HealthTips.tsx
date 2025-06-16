@@ -60,12 +60,12 @@ export function HealthTips() {
   }, []);
 
   return (
-    <div className="bg-white rounded-lg shadow-md p-4 mt-4">
+    <div className="health-tips-card">
       <h3 className="text-lg font-medium text-gray-800 mb-3">Lời khuyên sức khỏe</h3>
       <div className="grid grid-cols-1 gap-3">
         {selectedTips.map((tip, index) => (
-          <div key={index} className="flex items-start p-3 bg-blue-50 rounded-lg transition-all duration-500">
-            <div className="text-2xl mr-3">{tip.icon}</div>
+          <div key={index} className="health-tip-item">
+            <div className="health-tip-icon">{tip.icon}</div>
             <div>
               <h4 className="font-medium text-blue-800">{tip.title}</h4>
               <p className="text-sm text-gray-700">{tip.description}</p>
@@ -78,7 +78,7 @@ export function HealthTips() {
         <h4 className="font-medium text-gray-700 mb-2">Bạn có thể hỏi về:</h4>
         <div className="flex flex-wrap gap-2">
           {["Đau đầu", "Sốt", "Ho", "Mệt mỏi", "Căng thẳng", "Dinh dưỡng"].map((topic, index) => (
-            <span key={index} className="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded-full">
+            <span key={index} className="topic-tag">
               {topic}
             </span>
           ))}

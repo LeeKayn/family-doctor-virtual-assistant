@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { MessageItem } from './MessageItem';
 import { ChatInput } from './ChatInput';
 import { ChatHeader } from './ChatHeader';
@@ -10,13 +10,44 @@ import { v4 as uuidv4 } from 'uuid';
 export function ChatWindow() {
   const { messages, isLoading, error, addMessage, setIsLoading, setError } = useChatStore();
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const [isClient, setIsClient] = useState(false);
+
+  // Anti-hydration-error effect
+  useEffect(() => {
+    setIsClient(true);
+    
+    // Anti-injection: Loại bỏ div gây ra lỗi hydration
+    const removeUnwantedElements = () => {
+      try {
+        document.querySelectorAll('[id="extwaiokist"]').forEach(el => {
+          if (el && el.parentNode && document.body.contains(el)) {
+            try {
+              el.parentNode.removeChild(el);
+            } catch (e) {
+              // Bỏ qua lỗi nếu có
+            }
+          }
+        });
+      } catch (e) {
+        console.error('Error removing unwanted elements:', e);
+      }
+    };
+    
+    // Chạy ngay sau khi component mount
+    removeUnwantedElements();
+    
+    // Chạy một lần nữa sau khi component đã render
+    const timeoutId = setTimeout(removeUnwantedElements, 500);
+    
+    return () => clearTimeout(timeoutId);
+  }, []);
 
   useEffect(() => {
     // Scroll to bottom whenever messages change
-    if (messagesEndRef.current) {
+    if (messagesEndRef.current && isClient) {
       messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
     }
-  }, [messages]);
+  }, [messages, isClient]);
 
   const handleSendMessage = async (content: string) => {
     if (!content.trim()) return;
@@ -84,15 +115,15 @@ export function ChatWindow() {
           break;
         }
         
-        // Decode the chunk - từng phần nhỏ từ server
+        // Decode the chunk
         const chunk = decoder.decode(value, { stream: true });
         chunkCount++;
         console.log(`Received chunk #${chunkCount} (${chunk.length} chars)`);
         
-        // Server đã xử lý chunk, chỉ cần thêm vào nội dung hiện có
+        // Add to accumulated content
         accumulatedContent += chunk;
         
-        // Cập nhật tin nhắn với nội dung mới
+        // Update message with new content
         useChatStore.setState((state) => ({
           messages: state.messages.map((msg) => 
             msg.id === aiMessageId 
@@ -106,7 +137,7 @@ export function ChatWindow() {
       console.error('Error sending message:', err);
       const errorMessage = err instanceof Error ? err.message : 'An unknown error occurred while contacting the AI.';
       setError(errorMessage);
-      // Optionally, add a user-facing error message to the chat
+      // Add user-facing error message to the chat
       const errorBotMessage: Message = {
         id: uuidv4(),
         role: 'assistant',
@@ -118,11 +149,28 @@ export function ChatWindow() {
     }
   };
 
+  // Nếu chưa ở client, hiển thị placeholder để tránh lỗi hydration
+  if (!isClient) {
+    return (
+      <div className="chat-container">
+        <div className="chat-header">
+          <div className="text-lg font-medium">Tư Vấn Y Tế Trực Tuyến</div>
+        </div>
+        <div className="chat-messages flex items-center justify-center">
+          <div className="animate-pulse">Đang tải...</div>
+        </div>
+        <div className="chat-input-container">
+          <div className="h-10 bg-gray-100 rounded w-full"></div>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className="flex flex-col h-full bg-white overflow-hidden">
+    <div className="chat-container">
       <ChatHeader />
       
-      <div className="flex-1 overflow-y-auto p-4 bg-gray-50">
+      <div className="chat-messages">
         {messages.length === 0 ? (
           <div className="h-full flex flex-col items-center justify-center text-gray-500">
             <div className="bg-blue-100 p-6 rounded-full mb-4">

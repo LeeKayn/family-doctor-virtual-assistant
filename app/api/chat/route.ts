@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { Client } from "@gradio/client";
 
 // This simulates the AI response for medical advice
 // In production, you would replace this with your actual API call to a model
@@ -79,121 +78,92 @@ export async function POST(request: Request) {
       console.log("Connecting to Gradio API for streaming response...");
       
       // Import the Gradio client
-      const { Client } = await import('@gradio/client');
-      
-      // Connect to the Gradio API
-      console.log("Establishing connection to Gradio endpoint...");
-      const client = await Client.connect("https://6f0c9d3bc7203e8e99.gradio.live");
-      
-      // Create a streaming response
-      const encoder = new TextEncoder();
-      const stream = new ReadableStream({
-        async start(controller) {
-          try {
-            // Print API structure for debugging
-            let apiDetails = null;
+      try {
+        // Sử dụng dynamic import để tránh lỗi và có thể thử cách khác nếu cần
+        const { Client } = await import('@gradio/client');
+        
+        // Connect to the Gradio API (sử dụng endpoint đã cập nhật)
+        console.log("Establishing connection to Gradio endpoint...");
+        const client = await Client.connect("https://6f0c9d3bc7203e8e99.gradio.live");
+        
+        // Create a streaming response
+        const encoder = new TextEncoder();
+        const stream = new ReadableStream({
+          async start(controller) {
             try {
-              console.log("Fetching API details...");
-              apiDetails = await client.view_api();
-              console.log("API structure:", JSON.stringify(apiDetails, null, 2));
-              
-              // Print API endpoints available
-              console.log("API endpoints available:");
-              if (apiDetails && apiDetails.named_endpoints) {
-                Object.keys(apiDetails.named_endpoints).forEach(endpoint => {
-                  console.log(`- ${endpoint}`);
-                });
-              }
-            } catch (apiError) {
-              console.log("Could not fetch API details:", apiError);
-            }
-            
-            console.log("Setting up Gradio streaming...");
-            
-            // === ATTEMPT 1: Use streaming with submit ===
-            try {
-              console.log("Attempting to call streaming endpoint...");
-              console.log("Submitting request to named endpoint: /generate_streaming_response");
-              
-              const job = await client.submit("/generate_streaming_response", { 
-                question: message 
-              }, {
-                stream: true
-              });
-              
-              console.log("Request submitted successfully, waiting for streaming responses...");
-              
-              // Process job updates with the iterator
-              let accumulatedText = "";
-              let chunkCount = 0;
-              
-              for await (const update of job) {
-                // Type check if this is a data event with content
-                if ('data' in update && update.data !== undefined) {
-                  // Cast to appropriate type
-                  const dataEvent = update as { data: any };
-                  let newText = "";
-                  
-                  // Xử lý các định dạng khác nhau của data
-                  if (Array.isArray(dataEvent.data) && dataEvent.data.length > 0) {
-                    newText = String(dataEvent.data[0]);
-                  } else {
-                    newText = String(dataEvent.data);
-                  }
-                  
-                  if (newText.length > accumulatedText.length) {
-                    // Chỉ gửi phần text mới thêm vào, không gửi toàn bộ văn bản đã tích lũy
-                    const textDiff = newText.slice(accumulatedText.length);
-                    chunkCount++;
-                    console.log(`Sending chunk #${chunkCount} (${textDiff.length} chars)`);
-                    controller.enqueue(encoder.encode(textDiff));
-                    accumulatedText = newText;
-                  }
-                }
-              }
-              
-              console.log(`Streaming completed. Sent ${chunkCount} chunks with total ${accumulatedText.length} chars.`);
-              controller.close();
-              return; // Kết thúc sớm nếu thành công
-              
-            } catch (firstError) {
-              console.log("First streaming endpoint failed:", firstError);
-              
-              // === ATTEMPT 2: Use predict with the same endpoint ===
+              // Print API structure for debugging
+              let apiDetails = null;
               try {
-                console.log("Attempting second method with predict...");
-                const response = await client.predict("/generate_streaming_response", { 
+                console.log("Fetching API details...");
+                apiDetails = await client.view_api();
+                console.log("API structure:", JSON.stringify(apiDetails, null, 2));
+                
+                // Print API endpoints available
+                console.log("API endpoints available:");
+                if (apiDetails && apiDetails.named_endpoints) {
+                  Object.keys(apiDetails.named_endpoints).forEach(endpoint => {
+                    console.log(`- ${endpoint}`);
+                  });
+                }
+              } catch (apiError) {
+                console.log("Could not fetch API details:", apiError);
+              }
+              
+              console.log("Setting up Gradio streaming...");
+              
+              // === ATTEMPT 1: Use streaming with submit ===
+              try {
+                console.log("Attempting to call streaming endpoint...");
+                console.log("Submitting request to named endpoint: /generate_streaming_response");
+                
+                const job = await client.submit("/generate_streaming_response", { 
                   question: message 
+                }, {
+                  stream: true
                 });
                 
-                // Safe type check for response data
-                if (response && response.data) {
-                  // Kiểm tra nếu data là array
-                  if (Array.isArray(response.data) && response.data.length > 0) {
-                    const responseText = String(response.data[0]);
-                    console.log("Received response from second attempt (array):", responseText);
-                    controller.enqueue(encoder.encode(responseText));
-                    controller.close();
-                    return; // Kết thúc sớm nếu thành công
-                  } 
-                  // Nếu data không phải array mà là string hoặc object
-                  else {
-                    const responseText = String(response.data);
-                    console.log("Received response from second attempt (non-array):", responseText);
-                    controller.enqueue(encoder.encode(responseText));
-                    controller.close();
-                    return; // Kết thúc sớm nếu thành công
-                  }
-                } else {
-                  throw new Error("Empty response from second attempt");
-                }
-              } catch (secondError) {
-                console.log("Second attempt failed:", secondError);
+                console.log("Request submitted successfully, waiting for streaming responses...");
                 
-                // === ATTEMPT 3: Try another endpoint ===
+                // Process job updates with the iterator
+                let accumulatedText = "";
+                let chunkCount = 0;
+                
+                for await (const update of job) {
+                  // Type check if this is a data event with content
+                  if ('data' in update && update.data !== undefined) {
+                    // Cast to appropriate type
+                    const dataEvent = update as { data: any };
+                    let newText = "";
+                    
+                    // Xử lý các định dạng khác nhau của data
+                    if (Array.isArray(dataEvent.data) && dataEvent.data.length > 0) {
+                      newText = String(dataEvent.data[0]);
+                    } else {
+                      newText = String(dataEvent.data);
+                    }
+                    
+                    if (newText.length > accumulatedText.length) {
+                      // Chỉ gửi phần text mới thêm vào, không gửi toàn bộ văn bản đã tích lũy
+                      const textDiff = newText.slice(accumulatedText.length);
+                      chunkCount++;
+                      console.log(`Sending chunk #${chunkCount} (${textDiff.length} chars)`);
+                      controller.enqueue(encoder.encode(textDiff));
+                      accumulatedText = newText;
+                    }
+                  }
+                }
+                
+                console.log(`Streaming completed. Sent ${chunkCount} chunks with total ${accumulatedText.length} chars.`);
+                controller.close();
+                return; // Kết thúc sớm nếu thành công
+                
+              } catch (firstError) {
+                console.log("First streaming endpoint failed:", firstError);
+                
+                // === ATTEMPT 2: Use predict with the same endpoint ===
                 try {
-                  console.log("Attempting third method with another endpoint...");
-                  const response = await client.predict("/generate_streaming_response_1", { 
+                  console.log("Attempting second method with predict...");
+                  const response = await client.predict("/generate_streaming_response", { 
                     question: message 
                   });
                   
@@ -202,7 +172,7 @@ export async function POST(request: Request) {
                     // Kiểm tra nếu data là array
                     if (Array.isArray(response.data) && response.data.length > 0) {
                       const responseText = String(response.data[0]);
-                      console.log("Received response from third attempt (array):", responseText);
+                      console.log("Received response from second attempt (array):", responseText);
                       controller.enqueue(encoder.encode(responseText));
                       controller.close();
                       return; // Kết thúc sớm nếu thành công
@@ -210,55 +180,89 @@ export async function POST(request: Request) {
                     // Nếu data không phải array mà là string hoặc object
                     else {
                       const responseText = String(response.data);
-                      console.log("Received response from third attempt (non-array):", responseText);
+                      console.log("Received response from second attempt (non-array):", responseText);
                       controller.enqueue(encoder.encode(responseText));
                       controller.close();
                       return; // Kết thúc sớm nếu thành công
                     }
                   } else {
-                    throw new Error("Empty response from third attempt");
+                    throw new Error("Empty response from second attempt");
                   }
-                } catch (thirdError) {
-                  console.log("All API attempts failed, using fallback:", thirdError);
+                } catch (secondError) {
+                  console.log("Second attempt failed:", secondError);
+                  
+                  // === ATTEMPT 3: Try another endpoint ===
+                  try {
+                    console.log("Attempting third method with another endpoint...");
+                    const response = await client.predict("/generate_streaming_response_1", { 
+                      question: message 
+                    });
+                    
+                    // Safe type check for response data
+                    if (response && response.data) {
+                      // Kiểm tra nếu data là array
+                      if (Array.isArray(response.data) && response.data.length > 0) {
+                        const responseText = String(response.data[0]);
+                        console.log("Received response from third attempt (array):", responseText);
+                        controller.enqueue(encoder.encode(responseText));
+                        controller.close();
+                        return; // Kết thúc sớm nếu thành công
+                      } 
+                      // Nếu data không phải array mà là string hoặc object
+                      else {
+                        const responseText = String(response.data);
+                        console.log("Received response from third attempt (non-array):", responseText);
+                        controller.enqueue(encoder.encode(responseText));
+                        controller.close();
+                        return; // Kết thúc sớm nếu thành công
+                      }
+                    } else {
+                      throw new Error("Empty response from third attempt");
+                    }
+                  } catch (thirdError) {
+                    console.log("All API attempts failed, using fallback:", thirdError);
+                  }
                 }
               }
+              
+              // Nếu tất cả đều thất bại, sử dụng fallback
+              console.log("Using fallback response after all attempts failed");
+              controller.enqueue(encoder.encode("Không thể kết nối với dịch vụ AI. Đang sử dụng phương thức dự phòng...\n\n"));
+              const fallbackText = getHealthcareResponse(message);
+              controller.enqueue(encoder.encode(fallbackText));
+              controller.close();
+              
+            } catch (error) {
+              console.error("Error in streaming:", error);
+              // In case of error, send a message and close the stream
+              controller.enqueue(encoder.encode("\n\nXảy ra lỗi kết nối với hệ thống AI. Đang chuyển sang phương thức dự phòng..."));
+              
+              // Use fallback content
+              const fallbackText = getHealthcareResponse(message);
+              controller.enqueue(encoder.encode(fallbackText));
+              
+              controller.close();
             }
-            
-            // Nếu tất cả đều thất bại, sử dụng fallback
-            console.log("Using fallback response after all attempts failed");
-            controller.enqueue(encoder.encode("Không thể kết nối với dịch vụ AI. Đang sử dụng phương thức dự phòng...\n\n"));
-            const fallbackText = getHealthcareResponse(message);
-            controller.enqueue(encoder.encode(fallbackText));
-            controller.close();
-            
-          } catch (error) {
-            console.error("Error in streaming:", error);
-            // In case of error, send a message and close the stream
-            controller.enqueue(encoder.encode("\n\nXảy ra lỗi kết nối với hệ thống AI. Đang chuyển sang phương thức dự phòng..."));
-            
-            // Use fallback content
-            const fallbackText = getHealthcareResponse(message);
-            controller.enqueue(encoder.encode(fallbackText));
-            
-            controller.close();
           }
-        }
-      });
+        });
+        
+        // Return the streaming response
+        return new Response(stream, {
+          headers: {
+            'Content-Type': 'text/plain; charset=utf-8',
+            'Cache-Control': 'no-cache',
+            'Connection': 'keep-alive',
+          },
+        });
+      } catch (importError) {
+        console.error("Error importing Gradio client:", importError);
+        throw importError;
+      }
+    } catch (error) {
+      console.error("API error:", error);
       
-      // Return the streaming response
-      return new Response(stream, {
-        headers: {
-          'Content-Type': 'text/plain; charset=utf-8',
-          'Cache-Control': 'no-cache',
-          'Connection': 'keep-alive',
-        },
-      });
-    } catch (error: any) {
-      console.error("Gradio API error:", error.message || String(error));
-      console.error("Error details:", error);
-      
-      // Fallback to local streaming response
-      console.log("Using fallback local response stream");
+      // Sử dụng fallback nếu có lỗi
+      console.log("Using fallback response stream");
       const fallbackStream = createHealthcareResponseStream(message);
       
       return new Response(fallbackStream, {
@@ -269,8 +273,8 @@ export async function POST(request: Request) {
         },
       });
     }
-  } catch (error) {
-    console.error("Request parsing error:", error);
+  } catch (parseError) {
+    console.error("Request parsing error:", parseError);
     return new Response(JSON.stringify({ error: 'Failed to process request' }), {
       status: 500,
       headers: {
