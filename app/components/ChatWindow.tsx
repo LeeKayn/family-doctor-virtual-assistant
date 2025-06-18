@@ -61,9 +61,20 @@ export function ChatWindow() {
     };
     addMessage(userMessage);
     
+    await sendToAI(content);
+  };
+
+  const sendToAI = async (content: string) => {
     // Set loading state
+    console.log("Setting loading state to true");
     setIsLoading(true);
     setError(null); // Clear previous errors
+
+    // Safety timeout to ensure loading state is never stuck forever
+    const safetyTimeout = setTimeout(() => {
+      console.log("Safety timeout triggered - forcing loading state to false");
+      setIsLoading(false);
+    }, 120000); // 2 minutes maximum
 
     try {
       // Create a placeholder message for the AI's response
@@ -76,10 +87,10 @@ export function ChatWindow() {
       };
       addMessage(aiMessage);
 
-      // Call our local API endpoint with streaming
-      console.log("Sending message to local API:", content);
+      // Try streaming endpoint first
+      console.log("Sending message to streaming API:", content);
       
-      const response = await fetch('/api/chat', {
+      let response = await fetch('/api/chat/stream', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -87,13 +98,38 @@ export function ChatWindow() {
         body: JSON.stringify({ message: content }),
       });
 
-      console.log("Response status:", response.status);
+      console.log("Streaming response status:", response.status);
       
+      // If streaming fails, fallback to regular endpoint
       if (!response.ok) {
-        const errorText = await response.text();
-        console.error("Error response:", errorText);
-        const errorData = { message: `API request failed with status ${response.status}: ${errorText}` };
-        throw new Error(errorData.message);
+        console.log("Streaming failed, falling back to regular endpoint...");
+        console.log("Response headers:", Object.fromEntries(response.headers.entries()));
+        
+        response = await fetch('/api/chat', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ message: content }),
+        });
+        
+        console.log("Regular response status:", response.status);
+        
+        if (!response.ok) {
+          const errorText = await response.text();
+          console.error("Error response:", errorText);
+          const errorData = { message: `API request failed with status ${response.status}: ${errorText}` };
+          throw new Error(errorData.message);
+        }
+      }
+
+      // Check if response is actually streamable
+      const contentType = response.headers.get('content-type');
+      
+      if (contentType?.includes('application/json')) {
+        // This is a JSON error response, not a stream
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Streaming not available');
       }
 
       // Set up streaming response handling
@@ -108,31 +144,54 @@ export function ChatWindow() {
       console.log("Starting to process stream from server...");
       let chunkCount = 0;
       
-      // Read the stream
-      while (true) {
-        const { done, value } = await reader.read();
-        
-        if (done) {
-          console.log(`Stream complete. Processed ${chunkCount} chunks.`);
-          break;
+              // Read the stream
+        try {
+          while (true) {
+            const { done, value } = await reader.read();
+            
+            if (done) {
+              console.log(`Stream complete. Processed ${chunkCount} chunks.`);
+              console.log("Stream reading completed successfully");
+              // Explicitly set loading to false when stream completes
+              setTimeout(() => {
+                console.log("Forcing loading state to false after stream completion");
+                setIsLoading(false);
+              }, 100);
+              break;
+            }
+          
+          // Decode the chunk
+          const chunk = decoder.decode(value, { stream: true });
+          chunkCount++;
+          console.log(`Received chunk #${chunkCount} (${chunk.length} chars)`);
+          
+          // Add to accumulated content
+          accumulatedContent += chunk;
+          
+          // Update message with new content
+          useChatStore.setState((state) => ({
+            messages: state.messages.map((msg) => 
+              msg.id === aiMessageId 
+                ? { ...msg, content: accumulatedContent } 
+                : msg
+            ),
+          }));
         }
-        
-        // Decode the chunk
-        const chunk = decoder.decode(value, { stream: true });
-        chunkCount++;
-        console.log(`Received chunk #${chunkCount} (${chunk.length} chars)`);
-        
-        // Add to accumulated content
-        accumulatedContent += chunk;
-        
-        // Update message with new content
-        useChatStore.setState((state) => ({
-          messages: state.messages.map((msg) => 
-            msg.id === aiMessageId 
-              ? { ...msg, content: accumulatedContent } 
-              : msg
-          ),
-        }));
+              } catch (streamError) {
+          console.error('Stream reading error:', streamError);
+          // Force loading state to false on stream error
+          setTimeout(() => {
+            console.log("Forcing loading state to false after stream error");
+            setIsLoading(false);
+          }, 100);
+          throw new Error('Failed to read stream response');
+      } finally {
+        // Ensure reader is closed
+        try {
+          reader.cancel();
+        } catch (e) {
+          // Ignore cleanup errors
+        }
       }
       
     } catch (err) {
@@ -148,7 +207,30 @@ export function ChatWindow() {
       };
       addMessage(errorBotMessage);
     } finally {
+      // Clear the safety timeout
+      clearTimeout(safetyTimeout);
+      console.log("Setting loading state to false");
       setIsLoading(false);
+    }
+  };
+
+  const handleRetry = () => {
+    // Find the last user message
+    const lastUserMessage = [...messages].reverse().find(msg => msg.role === 'user');
+    
+    if (lastUserMessage) {
+      // Remove the last assistant message
+      const lastAssistantIndex = messages.map(msg => msg.role).lastIndexOf('assistant');
+      if (lastAssistantIndex !== -1) {
+        useChatStore.setState((state) => ({
+          messages: state.messages.slice(0, lastAssistantIndex)
+        }));
+      }
+      
+      // Regenerate response with same user message
+      setTimeout(() => {
+        sendToAI(lastUserMessage.content);
+      }, 100);
     }
   };
 
@@ -186,9 +268,21 @@ export function ChatWindow() {
           </div>
         ) : (
           <>
-            {messages.map((message) => (
-              <MessageItem key={message.id} message={message} />
-            ))}
+            {messages.map((message, index) => {
+              const isLatestAssistant = 
+                message.role === 'assistant' && 
+                index === messages.length - 1 && 
+                !isLoading;
+              
+              return (
+                <MessageItem
+                  key={message.id}
+                  message={message}
+                  onRetry={isLatestAssistant ? handleRetry : undefined}
+                  isLatestAssistant={isLatestAssistant}
+                />
+              );
+            })}
           </>
         )}
         {error && (

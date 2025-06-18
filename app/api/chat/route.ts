@@ -151,6 +151,7 @@ export async function POST(request: Request) {
             try {
               const reader = ngrokResponse.body!.getReader();
               let accumulatedText = "";
+              let buffer = ""; // Buffer for incomplete chunks
               
               while (true) {
                 const { done, value } = await reader.read();
@@ -162,52 +163,123 @@ export async function POST(request: Request) {
                 
                 // Decode the chunk from Python API
                 const chunk = decoder.decode(value, { stream: true });
-                console.log("Raw chunk received:", chunk.length, "bytes");
-                console.log("Chunk preview:", chunk.substring(0, 200));
+                buffer += chunk;
                 
-                // Parse Server-Sent Events format if needed
-                if (chunk.startsWith('data: ')) {
-                  try {
-                    const jsonStr = chunk.replace('data: ', '').trim();
-                    if (jsonStr === '[DONE]') {
+                // Process complete lines
+                const lines = buffer.split('\n');
+                buffer = lines.pop() || ''; // Keep incomplete line in buffer
+                
+                for (const line of lines) {
+                  if (!line.trim()) continue;
+                  
+                  console.log("Processing line:", line.substring(0, 100) + "...");
+                  
+                  // Handle Server-Sent Events format
+                  if (line.startsWith('data: ')) {
+                    const dataContent = line.replace('data: ', '').trim();
+                    
+                    if (dataContent === '[DONE]') {
+                      console.log("Received [DONE] signal");
                       break;
                     }
                     
-                    const parsed = JSON.parse(jsonStr);
-                    if (parsed.text) {
-                      // Decode Unicode escape sequences properly
-                      let decodedText = parsed.text;
-                      try {
-                        // Handle Unicode escape sequences like \u0110
-                        decodedText = JSON.parse('"' + parsed.text + '"');
-                      } catch {
-                        // If JSON parsing fails, use original text
-                        decodedText = parsed.text;
+                    try {
+                      const parsed = JSON.parse(dataContent);
+                      if (parsed.text) {
+                        // Decode Unicode escape sequences properly
+                        let decodedText = parsed.text;
+                        try {
+                          // Handle Unicode escape sequences like \u0110
+                          decodedText = JSON.parse('"' + parsed.text.replace(/"/g, '\\"') + '"');
+                        } catch {
+                          // If JSON parsing fails, use original text
+                          decodedText = parsed.text;
+                        }
+                        
+                        // Send only the new part of the text (incremental)
+                        if (decodedText.length > accumulatedText.length) {
+                          const newText = decodedText.slice(accumulatedText.length);
+                          if (newText.trim()) {
+                            console.log("Sending incremental text:", newText.substring(0, 50) + "...");
+                            controller.enqueue(encoder.encode(newText));
+                            accumulatedText = decodedText;
+                          }
+                        }
                       }
-                      
-                      // Send only the new part of the text (incremental)
-                      if (decodedText.length > accumulatedText.length) {
-                        const newText = decodedText.slice(accumulatedText.length);
-                        if (newText.trim()) {
-                          console.log("Sending incremental text:", newText.substring(0, 50) + "...");
-                          controller.enqueue(encoder.encode(newText));
-                          accumulatedText = decodedText;
+                    } catch (parseError) {
+                      console.log("Failed to parse SSE JSON, treating as plain text:", parseError);
+                      // If not JSON, treat as plain text but avoid duplicates
+                      const cleanContent = dataContent.replace(/^data:\s*/, '');
+                      if (cleanContent.trim() && !accumulatedText.includes(cleanContent)) {
+                        // Try to decode Unicode if it's a plain Unicode string
+                        try {
+                          const decoded = JSON.parse('"' + cleanContent.replace(/"/g, '\\"') + '"');
+                          controller.enqueue(encoder.encode(decoded));
+                        } catch {
+                          controller.enqueue(encoder.encode(cleanContent));
                         }
                       }
                     }
-                  } catch (parseError) {
-                    console.log("Failed to parse SSE JSON:", parseError);
-                    // If not JSON, treat as plain text but avoid duplicates
-                    const cleanChunk = chunk.replace('data: ', '');
-                    if (cleanChunk.trim() && !accumulatedText.includes(cleanChunk)) {
-                      controller.enqueue(encoder.encode(cleanChunk));
+                  } else {
+                    // Direct JSON line (not SSE format)
+                    try {
+                      const parsed = JSON.parse(line);
+                      if (parsed.text) {
+                        // Decode Unicode escape sequences
+                        let decodedText = parsed.text;
+                        try {
+                          decodedText = JSON.parse('"' + parsed.text.replace(/"/g, '\\"') + '"');
+                        } catch {
+                          decodedText = parsed.text;
+                        }
+                        
+                        // Send only new text
+                        if (decodedText.length > accumulatedText.length) {
+                          const newText = decodedText.slice(accumulatedText.length);
+                          if (newText.trim()) {
+                            console.log("Sending new text:", newText.substring(0, 50) + "...");
+                            controller.enqueue(encoder.encode(newText));
+                            accumulatedText = decodedText;
+                          }
+                        }
+                      }
+                    } catch (parseError) {
+                      console.log("Line is not JSON, treating as plain text");
+                      // Direct text chunk - avoid duplicates
+                      if (line.trim() && !accumulatedText.includes(line)) {
+                        try {
+                          const decoded = JSON.parse('"' + line.replace(/"/g, '\\"') + '"');
+                          controller.enqueue(encoder.encode(decoded));
+                        } catch {
+                          controller.enqueue(encoder.encode(line));
+                        }
+                      }
                     }
                   }
-                } else {
-                  // Direct text chunk - avoid duplicates
-                  if (chunk.trim() && !accumulatedText.includes(chunk)) {
-                    controller.enqueue(encoder.encode(chunk));
+                }
+              }
+              
+              // Process any remaining buffer content
+              if (buffer.trim()) {
+                try {
+                  const parsed = JSON.parse(buffer);
+                  if (parsed.text) {
+                    let decodedText = parsed.text;
+                    try {
+                      decodedText = JSON.parse('"' + parsed.text.replace(/"/g, '\\"') + '"');
+                    } catch {
+                      decodedText = parsed.text;
+                    }
+                    
+                    if (decodedText.length > accumulatedText.length) {
+                      const newText = decodedText.slice(accumulatedText.length);
+                      if (newText.trim()) {
+                        controller.enqueue(encoder.encode(newText));
+                      }
+                    }
                   }
+                } catch {
+                  // Ignore buffer parsing errors
                 }
               }
               
