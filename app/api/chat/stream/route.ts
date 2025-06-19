@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import type { GPUHost } from '../../../store/chatStore';
 
 // Define the available GPU endpoints

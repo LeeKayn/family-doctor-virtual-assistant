@@ -114,9 +114,9 @@ export function HealthTips() {
 
   const tabs = [
     { id: 'general', label: 'Tổng quan', icon: '🌟' },
+    { id: 'mental', label: 'Tinh thần', icon: '🧠' },
     { id: 'nutrition', label: 'Dinh dưỡng', icon: '🥗' },
-    { id: 'exercise', label: 'Thể dục', icon: '💪' },
-    { id: 'mental', label: 'Tinh thần', icon: '🧠' }
+    { id: 'exercise', label: 'Thể dục', icon: '💪' }
   ];
 
   return (

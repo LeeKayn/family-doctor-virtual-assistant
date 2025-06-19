@@ -23,7 +23,7 @@ export function ChatWindow() {
           if (el && el.parentNode && document.body.contains(el)) {
             try {
               el.parentNode.removeChild(el);
-            } catch (e) {
+            } catch {
               // Bỏ qua lỗi nếu có
             }
           }
@@ -189,7 +189,7 @@ export function ChatWindow() {
         // Ensure reader is closed
         try {
           reader.cancel();
-        } catch (e) {
+        } catch {
           // Ignore cleanup errors
         }
       }
@@ -265,19 +265,7 @@ export function ChatWindow() {
             </div>
             <p className="text-center text-2xl font-medium text-gray-700 mb-2">Chào mừng đến với dịch vụ tư vấn y tế!</p>
             <p className="text-center text-gray-600 max-w-lg mt-2 text-lg">Hãy đặt câu hỏi để nhận được lời khuyên về các vấn đề sức khỏe.</p>
-            <div className="mt-4 p-4 bg-blue-50 rounded-xl border border-blue-100 max-w-lg">
-              <p className="text-blue-800 font-medium mb-2">Bạn có thể hỏi về:</p>
-              <div className="flex flex-wrap gap-2 mt-1">
-                <span className="bg-white px-3 py-1 rounded-full text-sm border border-blue-200 shadow-sm">Đau đầu</span>
-                <span className="bg-white px-3 py-1 rounded-full text-sm border border-blue-200 shadow-sm">Sốt</span>
-                <span className="bg-white px-3 py-1 rounded-full text-sm border border-blue-200 shadow-sm">Ho</span>
-                <span className="bg-white px-3 py-1 rounded-full text-sm border border-blue-200 shadow-sm">Thể dục</span>
-                <span className="bg-white px-3 py-1 rounded-full text-sm border border-blue-200 shadow-sm">Dinh dưỡng</span>
-                <span className="bg-white px-3 py-1 rounded-full text-sm border border-blue-200 shadow-sm">Vắc-xin</span>
-                <span className="bg-white px-3 py-1 rounded-full text-sm border border-blue-200 shadow-sm">Giấc ngủ</span>
-                <span className="bg-white px-3 py-1 rounded-full text-sm border border-blue-200 shadow-sm">Stress</span>
-              </div>
-            </div>
+
           </div>
         ) : (
           <>

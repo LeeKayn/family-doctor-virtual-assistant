@@ -17,7 +17,7 @@ export default function HealthTipsWrapper() {
             if (el && el.parentNode && document.body.contains(el)) {
               try {
                 el.parentNode.removeChild(el);
-              } catch (e) {
+              } catch {
                 // Bỏ qua lỗi nếu có
               }
             }

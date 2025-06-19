@@ -64,10 +64,12 @@ body {
   background: var(--background);
   color: var(--foreground);
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
-  line-height: 1.7;
+  line-height: 1.6;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  font-size: 16px;
+  font-size: 1vw + 0.5rem; /* Responsive font size dựa trên viewport */
+  min-font-size: 14px;
+  max-font-size: 18px;
 }
 
 /* Layout & Containers */
@@ -327,34 +329,35 @@ body {
 }
 
 /* Typography - Larger sizes for elderly users */
+/* Responsive Typography - theo % viewport */
 .text-xs {
-  font-size: 0.875rem;
-  line-height: 1.5rem;
+  font-size: clamp(0.7rem, 1.5vw, 0.85rem);
+  line-height: 1.4;
 }
 
 .text-sm {
-  font-size: 1rem;
-  line-height: 1.75rem;
+  font-size: clamp(0.8rem, 2vw, 1rem);
+  line-height: 1.5;
 }
 
 .text-base {
-  font-size: 1.125rem;
-  line-height: 1.875rem;
+  font-size: clamp(0.9rem, 2.2vw, 1.1rem);
+  line-height: 1.6;
 }
 
 .text-lg {
-  font-size: 1.25rem;
-  line-height: 1.875rem;
+  font-size: clamp(1rem, 2.5vw, 1.3rem);
+  line-height: 1.6;
 }
 
 .text-xl {
-  font-size: 1.5rem;
-  line-height: 2rem;
+  font-size: clamp(1.1rem, 3vw, 1.5rem);
+  line-height: 1.7;
 }
 
 .text-2xl {
-  font-size: 1.875rem;
-  line-height: 2.25rem;
+  font-size: clamp(1.3rem, 3.5vw, 1.8rem);
+  line-height: 1.8;
 }
 
 .font-medium {
@@ -692,30 +695,35 @@ body {
 }
 
 /* Chat container styles */
+/* Chat Container - Responsive với viewport units */
 .chat-container {
   display: flex;
   flex-direction: column;
   height: 100vh;
-  max-height: 100vh;
+  width: 100%;
   background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%);
   overflow: hidden;
 }
 
 .chat-header {
-  padding: 1.5rem;
+  padding: clamp(0.5rem, 2vh, 1.5rem) clamp(1rem, 3vw, 2rem);
   color: white;
   position: relative;
   z-index: 10;
+  min-height: clamp(80px, 12vh, 120px);
+  display: flex;
+  align-items: center;
 }
 
 .chat-messages {
-  flex-grow: 1;
+  flex: 1;
   overflow-y: auto;
-  padding: 1.5rem;
+  padding: clamp(0.75rem, 2vw, 1.5rem);
   background-color: white;
-  border-top-left-radius: 1.5rem;
-  border-top-right-radius: 1.5rem;
+  border-top-left-radius: clamp(1rem, 2vw, 2rem);
+  border-top-right-radius: clamp(1rem, 2vw, 2rem);
   box-shadow: 0 -10px 15px -3px rgba(0, 0, 0, 0.1);
+  height: calc(100vh - clamp(80px, 12vh, 120px) - clamp(80px, 10vh, 100px));
 }
 
 .chat-messages::-webkit-scrollbar {
@@ -733,9 +741,10 @@ body {
 }
 
 .chat-input-container {
-  padding: 1rem 1.5rem 1.5rem;
+  padding: clamp(0.75rem, 1.5vh, 1.25rem) clamp(1rem, 2vw, 1.5rem);
   background-color: white;
   z-index: 10;
+  min-height: clamp(60px, 8vh, 80px);
 }
 
 .message-bubble {
@@ -816,8 +825,8 @@ body {
 }
 
 .message-content {
-  font-size: 1.125rem;
-  line-height: 1.8;
+  font-size: clamp(0.9rem, 2.2vw, 1.1rem); /* Responsive font */
+  line-height: 1.6;
   font-weight: 500;
   letter-spacing: 0.025em;
 }
@@ -825,16 +834,16 @@ body {
 .message-user-new .message-content {
   background: linear-gradient(135deg, #1e40af 0%, #3b82f6 100%);
   color: white;
-  padding: 1rem 1.25rem;
-  border-radius: 1rem;
+  padding: clamp(0.75rem, 1.5vw, 1.25rem) clamp(1rem, 2vw, 1.5rem);
+  border-radius: clamp(0.75rem, 1.5vw, 1.25rem);
   border: 2px solid #1d4ed8;
 }
 
 .message-assistant-new .message-content {
   background: white;
   color: #000000;
-  padding: 1rem 1.25rem;
-  border-radius: 1rem;
+  padding: clamp(0.75rem, 1.5vw, 1.25rem) clamp(1rem, 2vw, 1.5rem);
+  border-radius: clamp(0.75rem, 1.5vw, 1.25rem);
   border: 2px solid #e5e7eb;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
@@ -1044,6 +1053,51 @@ body {
 }
 
 /* Responsive design */
+/* Responsive Design với viewport scaling */
+@media (max-width: 768px) {
+  /* Mobile: Full width layout */
+  .chat-container {
+    height: 100vh;
+    height: 100dvh; /* Dynamic viewport height */
+  }
+  
+  .sidebar-column {
+    display: none; /* Ẩn sidebar trên mobile để tập trung vào chat */
+  }
+  
+  .chat-column {
+    width: 100% !important;
+  }
+  
+  /* Ẩn một số feature trên mobile để tiết kiệm không gian */
+  .chat-header .flex.items-center > div:last-child > div:first-child {
+    display: none; /* Ẩn status "Trực tuyến" trên mobile */
+  }
+}
+
+@media (min-width: 769px) and (max-width: 1200px) {
+  /* Tablet/Small laptop: Cân bằng tốt hơn */
+  .lg\:w-\[65\%\] {
+    width: 60% !important;
+  }
+  
+  .lg\:w-\[35\%\] {
+    width: 40% !important;
+  }
+}
+
+@media (min-width: 1201px) {
+  /* Desktop lớn: Có thể dùng tỷ lệ ban đầu */
+  .xl\:w-\[70\%\] {
+    width: 70% !important;
+  }
+  
+  .xl\:w-\[30\%\] {
+    width: 30% !important;
+  }
+}
+
+/* Responsive helpers */
 @media (min-width: 768px) {
   .md\:flex {
     display: flex;
@@ -1055,17 +1109,21 @@ body {
 }
 
 @media (min-width: 1024px) {
-  .lg\:w-3\/4 {
-    width: 75%;
-  }
-
-  .lg\:w-1\/4 {
-    width: 25%;
-  }
-
   .lg\:flex-row {
     flex-direction: row;
   }
+}
+
+/* Prevent horizontal scrolling and ensure proper scaling */
+* {
+  max-width: 100%;
+}
+
+html {
+  /* Prevent zoom on iOS Safari */
+  -webkit-text-size-adjust: 100%;
+  /* Smooth scrolling */
+  scroll-behavior: smooth;
 }
 
 /* Focus indicators with high contrast */

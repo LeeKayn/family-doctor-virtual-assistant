@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server';
+// NextRequest and NextResponse are not used in this file
 
 // This simulates the AI response for medical advice
 // In production, you would replace this with your actual API call to a model
@@ -243,7 +243,7 @@ export async function POST(request: Request) {
                           }
                         }
                       }
-                    } catch (parseError) {
+                    } catch {
                       console.log("Line is not JSON, treating as plain text");
                       // Direct text chunk - avoid duplicates
                       if (line.trim() && !accumulatedText.includes(line)) {
@@ -387,7 +387,7 @@ export async function POST(request: Request) {
                 
                 for await (const update of job) {
                   if ('data' in update && update.data !== undefined) {
-                    const dataEvent = update as { data: any };
+                    const dataEvent = update as { data: unknown };
                     let newText = "";
                     
                     if (Array.isArray(dataEvent.data) && dataEvent.data.length > 0) {

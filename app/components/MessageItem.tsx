@@ -34,16 +34,26 @@ export function MessageItem({ message, onRetry, isLatestAssistant }: MessageItem
         {/* Avatar */}
         <div className="flex-shrink-0 mb-2">
           {isUser ? (
-            <div className="w-10 h-10 bg-gradient-to-br from-purple-500 via-blue-500 to-indigo-600 rounded-full flex items-center justify-center shadow-md border border-white">
-              <svg className="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 20 20">
-                <path fillRule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clipRule="evenodd" />
-              </svg>
+            <div className="w-10 h-10 bg-gradient-to-br from-purple-500 via-blue-500 to-indigo-600 rounded-full flex items-center justify-center shadow-md border border-white overflow-hidden">
+              <img 
+                src="/images/people.jpg" 
+                alt="Bạn" 
+                className="w-full h-full object-cover rounded-full"
+                style={{
+                  objectFit: 'cover'
+                }}
+              />
             </div>
           ) : (
-            <div className="w-10 h-10 bg-gradient-to-br from-emerald-400 via-green-500 to-teal-500 rounded-full flex items-center justify-center shadow-md border border-white">
-              <svg className="w-6 h-6 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
+            <div className="w-10 h-10 bg-gradient-to-br from-emerald-400 via-green-500 to-teal-500 rounded-full flex items-center justify-center shadow-md border border-white overflow-hidden">
+              <img 
+                src="/images/medical_bot.jpg" 
+                alt="Bác sĩ AI" 
+                className="w-full h-full object-cover rounded-full"
+                style={{
+                  objectFit: 'cover'
+                }}
+              />
             </div>
           )}
         </div>
@@ -73,7 +83,7 @@ export function MessageItem({ message, onRetry, isLatestAssistant }: MessageItem
           <div className={`relative ${
             isUser 
               ? 'bg-blue-100 text-blue-900 rounded-2xl rounded-br-none border border-blue-200' 
-              : 'bg-white text-gray-800 rounded-2xl rounded-bl-none border border-gray-200 shadow-sm'
+              : 'bg-green-50 text-gray-800 rounded-2xl rounded-bl-none border border-green-200 shadow-sm'
           } px-4 py-3`}>
             {/* Message content */}
             <div className="whitespace-pre-wrap">
@@ -85,8 +95,20 @@ export function MessageItem({ message, onRetry, isLatestAssistant }: MessageItem
               <div className="flex gap-3 mt-4 pt-3 border-t border-gray-200">
                 <button
                   onClick={onRetry}
-                  className="flex items-center gap-1 text-sm text-gray-600 hover:text-blue-700 transition-colors duration-200"
+                  className="flex items-center gap-2 text-sm text-white transition-all duration-300 ease-in-out transform hover:scale-105"
                   title="Sinh lại câu trả lời"
+                  style={{
+                    background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+                    padding: '0.5rem 1rem',
+                    borderRadius: '1rem',
+                    boxShadow: '0 2px 8px rgba(16, 185, 129, 0.3)'
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.boxShadow = '0 4px 12px rgba(16, 185, 129, 0.4)';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.boxShadow = '0 2px 8px rgba(16, 185, 129, 0.3)';
+                  }}
                 >
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
@@ -96,8 +118,32 @@ export function MessageItem({ message, onRetry, isLatestAssistant }: MessageItem
                 
                 <button
                   onClick={handleCopy}
-                  className="flex items-center gap-1 text-sm text-gray-600 hover:text-blue-700 transition-colors duration-200"
+                  className="flex items-center gap-2 text-sm text-white transition-all duration-300 ease-in-out transform hover:scale-105"
                   title="Sao chép"
+                  style={{
+                    background: copied 
+                      ? 'linear-gradient(135deg, #10b981 0%, #059669 100%)'
+                      : 'linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)',
+                    padding: '0.5rem 1rem',
+                    borderRadius: '1rem',
+                    boxShadow: copied 
+                      ? '0 2px 8px rgba(16, 185, 129, 0.3)'
+                      : '0 2px 8px rgba(59, 130, 246, 0.3)'
+                  }}
+                  onMouseEnter={(e) => {
+                    if (copied) {
+                      e.currentTarget.style.boxShadow = '0 4px 12px rgba(16, 185, 129, 0.4)';
+                    } else {
+                      e.currentTarget.style.boxShadow = '0 4px 12px rgba(59, 130, 246, 0.4)';
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    if (copied) {
+                      e.currentTarget.style.boxShadow = '0 2px 8px rgba(16, 185, 129, 0.3)';
+                    } else {
+                      e.currentTarget.style.boxShadow = '0 2px 8px rgba(59, 130, 246, 0.3)';
+                    }
+                  }}
                 >
                   {copied ? (
                     <>

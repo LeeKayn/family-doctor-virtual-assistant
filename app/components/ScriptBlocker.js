@@ -46,7 +46,7 @@
 
   // Thiết lập MutationObserver để theo dõi các thay đổi DOM
   if (typeof MutationObserver !== 'undefined') {
-    var observer = new MutationObserver(function(mutations) {
+    var observer = new MutationObserver(function() {
       cleanupSuspiciousElements();
     });
 

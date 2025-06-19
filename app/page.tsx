@@ -1,7 +1,7 @@
 "use client";
 
 import { ConnectionStatus } from './components/ConnectionStatus';
-import { HydrationGuard } from './components/HydrationGuard';
+// HydrationGuard import removed as it's not used
 import dynamic from 'next/dynamic';
 import { Suspense } from 'react';
 
@@ -31,9 +31,9 @@ const HealthTips = dynamic(() => import('./components/HealthTipsWrapper'), {
 export default function Home() {
   return (
     <main className="flex min-h-screen flex-col bg-gray-100">
-      <div className="flex flex-col lg:flex-row h-screen">
-        {/* Main chat column - now full height and wider */}
-        <div className="w-full lg:w-3/4 h-full chat-column">
+      <div className="flex flex-col lg:flex-row h-screen w-screen">
+        {/* Main chat column - responsive width */}
+        <div className="w-full lg:w-[65%] xl:w-[70%] h-full chat-column">
           <Suspense fallback={
             <div className="h-full w-full flex items-center justify-center bg-gray-50">
               <div className="text-center">
@@ -45,8 +45,12 @@ export default function Home() {
           </Suspense>
         </div>
         
-        {/* Sidebar column - simplified for elderly users */}
-        <div className="w-full lg:w-1/4 h-full overflow-y-auto p-6 sidebar-column">
+        {/* Sidebar column - wider for better usability */}
+        <div className="w-full lg:w-[35%] xl:w-[30%] h-full overflow-y-auto sidebar-column"
+             style={{
+               padding: 'clamp(1rem, 2vw, 2rem)',
+               fontSize: 'clamp(0.9rem, 1.8vw, 1.1rem)'
+             }}>
           <div className="bg-white rounded-lg shadow-lg p-6 mb-6 border-2 border-blue-100">
             <h2 className="text-xl font-bold text-gray-800 mb-4 flex items-center">
               <span className="text-2xl mr-3">ℹ️</span>
@@ -79,7 +83,7 @@ export default function Home() {
             </div>
             <div className="bg-white rounded-lg p-4 shadow-md">
               <p className="text-base text-gray-700 font-medium leading-relaxed">
-                © 2024 Tư Vấn Y Tế AI
+                © 2025 LeeKayn - Tư vấn y tế AI
               </p>
               <p className="text-sm text-gray-600 mt-2">
                 Hỗ trợ sức khỏe 24/7
