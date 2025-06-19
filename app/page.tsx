@@ -33,7 +33,7 @@ export default function Home() {
     <main className="flex min-h-screen flex-col bg-gray-100">
       <div className="flex flex-col lg:flex-row h-screen">
         {/* Main chat column - now full height and wider */}
-        <div className="w-full lg:w-3/4 h-full">
+        <div className="w-full lg:w-3/4 h-full chat-column">
           <Suspense fallback={
             <div className="h-full w-full flex items-center justify-center bg-gray-50">
               <div className="text-center">
@@ -46,7 +46,7 @@ export default function Home() {
         </div>
         
         {/* Sidebar column - simplified for elderly users */}
-        <div className="w-full lg:w-1/4 h-full overflow-y-auto p-6">
+        <div className="w-full lg:w-1/4 h-full overflow-y-auto p-6 sidebar-column">
           <div className="bg-white rounded-lg shadow-lg p-6 mb-6 border-2 border-blue-100">
             <h2 className="text-xl font-bold text-gray-800 mb-4 flex items-center">
               <span className="text-2xl mr-3">ℹ️</span>

@@ -8,7 +8,7 @@ import { useChatStore, Message } from '../store/chatStore';
 import { v4 as uuidv4 } from 'uuid';
 
 export function ChatWindow() {
-  const { messages, isLoading, error, addMessage, setIsLoading, setError } = useChatStore();
+  const { messages, isLoading, error, gpuHost, addMessage, setIsLoading, setError } = useChatStore();
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const [isClient, setIsClient] = useState(false);
 
@@ -95,7 +95,7 @@ export function ChatWindow() {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ message: content }),
+        body: JSON.stringify({ message: content, gpuHost }),
       });
 
       console.log("Streaming response status:", response.status);
@@ -245,7 +245,7 @@ export function ChatWindow() {
           <div className="animate-pulse">Đang tải...</div>
         </div>
         <div className="chat-input-container">
-          <div className="h-10 bg-gray-100 rounded w-full"></div>
+          <div className="h-10 bg-gray-100 rounded-lg w-full"></div>
         </div>
       </div>
     );
@@ -258,13 +258,26 @@ export function ChatWindow() {
       <div className="chat-messages">
         {messages.length === 0 ? (
           <div className="h-full flex flex-col items-center justify-center text-gray-500">
-            <div className="bg-blue-100 p-6 rounded-full mb-4">
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-16 w-16 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <div className="bg-blue-100 p-6 rounded-full mb-4 shadow-md">
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-16 w-16 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
               </svg>
             </div>
-            <p className="text-center text-xl font-medium text-gray-700">Chào mừng đến với dịch vụ tư vấn y tế!</p>
-            <p className="text-center text-gray-600 max-w-lg mt-3 text-lg">Hãy đặt câu hỏi để nhận được lời khuyên về các vấn đề sức khỏe. Bạn có thể hỏi về đau đầu, sốt, ho, thể dục, dinh dưỡng và nhiều chủ đề khác.</p>
+            <p className="text-center text-2xl font-medium text-gray-700 mb-2">Chào mừng đến với dịch vụ tư vấn y tế!</p>
+            <p className="text-center text-gray-600 max-w-lg mt-2 text-lg">Hãy đặt câu hỏi để nhận được lời khuyên về các vấn đề sức khỏe.</p>
+            <div className="mt-4 p-4 bg-blue-50 rounded-xl border border-blue-100 max-w-lg">
+              <p className="text-blue-800 font-medium mb-2">Bạn có thể hỏi về:</p>
+              <div className="flex flex-wrap gap-2 mt-1">
+                <span className="bg-white px-3 py-1 rounded-full text-sm border border-blue-200 shadow-sm">Đau đầu</span>
+                <span className="bg-white px-3 py-1 rounded-full text-sm border border-blue-200 shadow-sm">Sốt</span>
+                <span className="bg-white px-3 py-1 rounded-full text-sm border border-blue-200 shadow-sm">Ho</span>
+                <span className="bg-white px-3 py-1 rounded-full text-sm border border-blue-200 shadow-sm">Thể dục</span>
+                <span className="bg-white px-3 py-1 rounded-full text-sm border border-blue-200 shadow-sm">Dinh dưỡng</span>
+                <span className="bg-white px-3 py-1 rounded-full text-sm border border-blue-200 shadow-sm">Vắc-xin</span>
+                <span className="bg-white px-3 py-1 rounded-full text-sm border border-blue-200 shadow-sm">Giấc ngủ</span>
+                <span className="bg-white px-3 py-1 rounded-full text-sm border border-blue-200 shadow-sm">Stress</span>
+              </div>
+            </div>
           </div>
         ) : (
           <>
@@ -286,8 +299,13 @@ export function ChatWindow() {
           </>
         )}
         {error && (
-          <div className="rounded-lg bg-red-100 text-red-600 p-3 my-2">
-            Lỗi: {error}
+          <div className="rounded-xl bg-red-100 text-red-600 p-4 my-3 border border-red-200 shadow-sm">
+            <div className="flex items-start">
+              <svg className="w-5 h-5 mr-2 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+              </svg>
+              <span>Lỗi: {error}</span>
+            </div>
           </div>
         )}
         <div ref={messagesEndRef} />

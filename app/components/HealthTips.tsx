@@ -132,18 +132,18 @@ export function HealthTips() {
       </div>
 
       {/* Tab Navigation */}
-      <div className="flex flex-wrap gap-2 mb-6 border-b border-gray-200 pb-4">
+      <div className="flex flex-wrap gap-3 mb-6 border-b-2 border-gray-300 pb-4">
         {tabs.map((tab) => (
           <button
             key={tab.id}
             onClick={() => setActiveTab(tab.id)}
-            className={`px-4 py-2 rounded-full text-sm font-medium transition-all duration-200 ${
+            className={`px-6 py-3 rounded-lg text-base font-bold transition-all duration-200 border-2 ${
               activeTab === tab.id
-                ? 'bg-blue-600 text-white shadow-lg transform scale-105'
-                : 'bg-gray-100 text-gray-600 hover:bg-gray-200 hover:text-gray-800'
+                ? 'bg-white text-blue-600 border-blue-600 shadow-lg'
+                : 'bg-white text-black border-gray-400 hover:bg-blue-50 hover:border-blue-600'
             }`}
           >
-            <span className="mr-1">{tab.icon}</span>
+            <span className="mr-2 text-lg">{tab.icon}</span>
             {tab.label}
           </button>
         ))}

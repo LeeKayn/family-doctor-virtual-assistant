@@ -1,17 +1,28 @@
 import { NextRequest, NextResponse } from 'next/server';
+import type { GPUHost } from '../../../store/chatStore';
+
+// Define the available GPU endpoints
+const GPU_ENDPOINTS: Record<GPUHost, string> = {
+  gpu4090: 'https://albacore-magical-wrongly.ngrok-free.app/api/chat/stream',
+  kaggle: 'https://weasel-ideal-mammoth.ngrok-free.app/api/chat/stream'
+};
 
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { message } = body;
+    const { message, gpuHost = 'gpu4090' } = body as { message: string, gpuHost?: GPUHost };  // Default to gpu4090 if not specified
 
     console.log("Streaming endpoint called with message:", message.substring(0, 50) + "...");
+    console.log("Using GPU host:", gpuHost);
 
-    // Try connecting to ngrok streaming endpoint first
+    // Select the appropriate endpoint based on gpuHost
+    const endpoint = GPU_ENDPOINTS[gpuHost];
+    
+    // Try connecting to selected streaming endpoint
     try {
-      console.log("Attempting to connect to ngrok streaming endpoint...");
-      // https://albacore-magical-wrongly.ngrok-free.app/  ; https://weasel-ideal-mammoth.ngrok-free.app
-      const ngrokResponse = await fetch('https://albacore-magical-wrongly.ngrok-free.app/api/chat/stream', {
+      console.log(`Attempting to connect to ${gpuHost} streaming endpoint: ${endpoint}...`);
+      
+      const ngrokResponse = await fetch(endpoint, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -24,7 +35,7 @@ export async function POST(request: Request) {
       });
 
       if (ngrokResponse.ok && ngrokResponse.body) {
-        console.log("Ngrok streaming response received, setting up clean stream...");
+        console.log(`${gpuHost} streaming response received, setting up clean stream...`);
         
         const encoder = new TextEncoder();
         const decoder = new TextDecoder();
